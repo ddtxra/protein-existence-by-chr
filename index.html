@@ -1,0 +1,48 @@
+<html>
+<head>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script src="http://code.highcharts.com/highcharts.js"></script>
+<script src="https://cdn.rawgit.com/calipho-sib/nextprot-js/v0.0.51/dist/nextprot.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" integrity="sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
+</head>
+<body>
+  <div id="plots" class="row" style="margin: 10px"></div>
+</body>
+  <script type="text/javascript">
+      // Create an instance of nextprot API
+      var applicationName = "demo app for using SPARQL with protein existence";
+      var clientInformation = "calipho group at SIB";
+      var nx = new Nextprot.Client(applicationName, clientInformation);
+      //Define your sparql
+      var peLevelByChr ='SELECT ?chr ?pe count(?entry) as ?cnt ' +
+                                    'WHERE { ' +
+                                    '  ?entry :existence ?pe . ' +
+                                    '  ?entry :gene / :chromosome ?chr . ' +
+                                    '} ' +
+                                    ' group by ?chr ?pe ' +
+                                    ' order by ?chr desc(?cnt) ';
+
+      //Execute the sparql and retrieve result
+      nx.executeSparql(peLevelByChr).then(function (result){
+        var dataByChr = {};
+        result.results.bindings.map(function (data) {
+          var seriesData = dataByChr[data.chr.value] || [];
+          seriesData.push([data.pe.value, parseInt(data.cnt.value)]); //gets number of entries
+          dataByChr[data.chr.value] = seriesData;
+        });
+
+        for (var chr in dataByChr) {
+
+          $("#plots").append('<div class="col-md-1"><span>chr ' + chr + '</span><div id="plot' + chr + '"></div></div>');
+          //Draw the plot
+          $('#plot' + chr).highcharts({chart: {type: 'pie', height: 100},
+            title: 'chr' + chr,
+            credits: {enabled: false},
+            series: [{data: dataByChr[chr], dataLabels: {enabled: false} }]
+          });
+
+        }
+
+      });
+  </script>
+</html>
